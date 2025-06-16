@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TukGo Driver - Earnings Tracker</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #4361ee;
+      --primary-dark: #3a56d4;
+      --secondary: #7209b7;
+      --success: #06d6a0;
+      --danger: #ef476f;
+      --warning: #ffd166;
+      --dark: #2d3134;
+      --light: #f8f9fa;
+      --gray: #6c757d;
+      --border: #e0e0e0;
+      --card-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.05);
+      --transition: all 0.3s ease;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, #f0f4f8 0%, #e6f0fa 100%);
+      color: var(--dark);
+      overflow-x: hidden;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+
+    @media (min-width: 992px) {
+      .container {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .header {
+      grid-column: 1 / -1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 0;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+
+    .header h2 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--primary);
+    }
+
+    .driver-info {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .driver-avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: linear-gradient(45deg, var(--primary), var(--secondary));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: 1.2rem;
+    }
+
+    .driver-name {
+      font-weight: 600;
+      color: var(--dark);
+    }
+
+    .driver-status {
+      font-size: 0.9rem;
+      color: var(--gray);
+    }
+
+    .box {
+      background: white;
+      border-radius: 16px;
+      padding: 25px;
+      box-shadow: var(--card-shadow);
+      transition: var(--transition);
+      height: auto;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .box:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 30px -10px rgba(0,0,0,0.15);
+    }
+
+    .panel-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: 20px;
+      color: var(--dark);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .panel-title i {
+      color: var(--primary);
+    }
+
+    #info {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+      padding: 12px 15px;
+      background: rgba(67, 97, 238, 0.08);
+      border-radius: 12px;
+      border-left: 4px solid var(--primary);
+      transition: var(--transition);
+    }
+
+    #info.new-ride-pulse {
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(67, 97, 238, 0.4); }
+      70% { box-shadow: 0 0 0 10px rgba(67, 97, 238, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(67, 97, 238, 0); }
+    }
+
+    #priceInfo {
+      font-size: 1.1rem;
+      margin-bottom: 20px;
+      padding: 12px 15px;
+      background: rgba(6, 214, 160, 0.08);
+      border-radius: 12px;
+      border-left: 4px solid var(--success);
+    }
+
+    #requestMessage {
+      font-size: 1rem;
+      font-weight: 500;
+      padding: 10px;
+      text-align: center;
+      border-radius: 8px;
+      margin: 10px 0;
+      min-height: 40px;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 15px;
+      margin: 20px 0;
+      justify-content: center;
+    }
+
+    button {
+      padding: 14px 25px;
+      border: none;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 7px 14px rgba(0,0,0,0.15);
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    button i {
+      font-size: 1.2rem;
+    }
+
+    .accept-btn {
+      background: linear-gradient(to right, var(--success), #05b48a);
+      color: white;
+    }
+
+    .reject-btn {
+      background: linear-gradient(to right, var(--danger), #d43a5f);
+      color: white;
+    }
+
+    .complete-btn {
+      background: linear-gradient(to right, var(--primary), var(--primary-dark));
+      color: white;
+    }
+
+    .demo-btn {
+      background: linear-gradient(to right, var(--gray), #5a6268);
+      color: white;
+    }
+
+    .reset-btn {
+      background: linear-gradient(to right, var(--warning), #ffc439);
+      color: #333;
+    }
+
+    #map {
+      height: 350px;
+      border-radius: 12px;
+      overflow: hidden;
+      margin: 20px 0;
+      border: 1px solid var(--border);
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid rgba(67, 97, 238, 0.2);
+      border-top: 5px solid var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
+      display: none;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .demo-message {
+      background: rgba(255, 209, 102, 0.15);
+      border-left: 4px solid var(--warning);
+      padding: 12px 15px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      margin: 15px 0;
+      color: #856404;
+    }
+
+    .stats-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 25px;
+    }
+
+    .stat-card {
+      background: var(--light);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+      transition: var(--transition);
+    }
+
+    .stat-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 7px 14px rgba(0,0,0,0.1);
+    }
+
+    .stat-label {
+      font-size: 0.95rem;
+      color: var(--gray);
+      margin-bottom: 5px;
+    }
+
+    .stat-value {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .chart-container {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 25px;
+      height: 300px;
+    }
+
+    .chart-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--dark);
+    }
+
+    .transactions {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .transaction-header {
+      display: flex;
+      padding: 12px 0;
+      border-bottom: 2px solid var(--border);
+      font-weight: 600;
+      color: var(--gray);
+    }
+
+    .transaction-date {
+      flex: 2;
+    }
+
+    .transaction-route {
+      flex: 3;
+    }
+
+    .transaction-amount {
+      flex: 1;
+      text-align: right;
+    }
+
+    .transaction-row {
+      display: flex;
+      padding: 15px 0;
+      border-bottom: 1px solid var(--border);
+      transition: var(--transition);
+    }
+
+    .transaction-row:hover {
+      background: rgba(67, 97, 238, 0.03);
+    }
+
+    .highlight-transaction {
+      background: rgba(6, 214, 160, 0.08);
+      border-radius: 8px;
+      font-weight: 500;
+    }
+
+    .route-info {
+      background: rgba(255, 255, 255, 0.9);
+      padding: 10px 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      font-size: 0.9rem;
+    }
+
+    .route-info .from {
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+
+    .route-info .to {
+      margin-bottom: 5px;
+    }
+
+    .route-info .price {
+      font-weight: 600;
+      color: var(--success);
+    }
+
+    .notification-badge {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background: var(--danger);
+      color: white;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: bold;
+    }
+
+    .status-indicator {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 5px;
+    }
+    
+    .status-online {
+      background: var(--success);
+    }
+    
+    .status-offline {
+      background: var(--gray);
+    }
+
+    .fade-in {
+      animation: fadeIn 0.5s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h2><i class="fas fa-taxi"></i> TukGo Driver Earnings Panel</h2>
+      <div class="driver-info">
+        <div class="driver-avatar">JD</div>
+        <div>
+          <div class="driver-name">John Driver</div>
+          <div class="driver-status"><span class="status-indicator status-online"></span>Online</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="box fade-in">
+      <div class="panel-title"><i class="fas fa-car"></i> Ride Requests</div>
+      
+      <div id="info">Waiting for ride request...</div>
+      <div id="priceInfo"></div>
+      
+      <div class="button-group">
+        <button onclick="acceptRequest()" class="accept-btn"><i class="fas fa-check-circle"></i>Accept</button>
+        <button onclick="rejectRequest()" class="reject-btn"><i class="fas fa-times-circle"></i>Reject</button>
+      </div>
+      
+      <div class="button-group" id="doneButton" style="display: none;">
+        <button onclick="completeRide()" class="complete-btn"><i class="fas fa-flag-checkered"></i>Complete Ride</button>
+      </div>
+      
+      <div id="requestMessage"></div>
+      
+      <div id="map"></div>
+      
+      <div class="spinner" id="loadingSpinner"></div>
+      
+      <div class="demo-message">
+        <strong><i class="fas fa-flask"></i> DEMO MODE:</strong> Earnings are simulated locally. Use the demo buttons below to test the system.
+      </div>
+      
+      <div class="button-group">
+        <button onclick="simulateRequest()" class="demo-btn"><i class="fas fa-mobile-alt"></i>Simulate Ride Request</button>
+        <button onclick="resetDemoData()" class="reset-btn"><i class="fas fa-sync-alt"></i>Reset Demo Data</button>
+      </div>
+    </div>
+
+    <div class="box fade-in" id="earningsPanel">
+      <div class="panel-title"><i class="fas fa-chart-line"></i> Earnings Dashboard</div>
+      
+      <div class="stats-container">
+        <div class="stat-card">
+          <div class="stat-label">Today's Earnings</div>
+          <div class="stat-value" id="todayEarnings">LKR 0.00</div>
+          <div class="stat-label" id="todayRides">0 Rides</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Earnings</div>
+          <div class="stat-value" id="totalEarnings">LKR 0.00</div>
+          <div class="stat-label" id="totalRides">0 Rides</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Avg. per Ride</div>
+          <div class="stat-value" id="avgEarnings">LKR 0.00</div>
+          <div class="stat-label">All Time</div>
+        </div>
+      </div>
+      
+      <div class="chart-container">
+        <div class="chart-title"><i class="fas fa-chart-bar"></i> Earnings Trend (Last 7 Rides)</div>
+        <canvas id="earningsChart"></canvas>
+      </div>
+      
+      <div class="transactions">
+        <div class="chart-title"><i class="fas fa-history"></i> Recent Transactions</div>
+        <div class="transaction-header">
+          <div class="transaction-date">Date & Time</div>
+          <div class="transaction-route">Route</div>
+          <div class="transaction-amount">Amount</div>
+        </div>
+        <div id="transactionsList">
+          <div class="transaction-row">
+            <div class="transaction-date">No transactions yet</div>
+            <div class="transaction-route"></div>
+            <div class="transaction-amount"></div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="button-group" id="completeRideButton" style="display: none; margin-top: 20px;">
+        <button onclick="completeRide()" class="complete-btn"><i class="fas fa-flag-checkered"></i>Complete Ride</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const ORS_API_KEY = "5b3ce3597851110001cf62481f5510d005e64284aa0a91face53ba8f";
+    // Firebase setup
+    const firebaseConfig = {
+      apiKey: "AIzaSyBH5NCUSQBwKHowSv641tOIljEQuF0r778",
+      authDomain: "tukgo2.firebaseapp.com",
+      projectId: "tukgo2",
+      storageBucket: "tukgo2.appspot.com",
+      messagingSenderId: "556513178306",
+      appId: "1:556513178306:web:49b3f8229c939f06c4415b",
+    };
+    let app;
+    try {
+      app = firebase.initializeApp(firebaseConfig);
+    } catch (e) {
+      app = firebase.app();
+    }
+    const db = firebase.firestore();
+    const latestDocRef = db.collection("routes").doc("latest");
+    const earningsRef = db.collection("earnings");
+    const driverRef = db.collection("drivers").doc("driver1");
+
+    // Earnings panel state
+    let earningsPanel = {
+      totalEarnings: 0,
+      totalRides: 0,
+      todayEarnings: 0,
+      todayRides: 0,
+      transactions: []
+    };
+
+    function loadEarningsPanel() {
+      try {
+        const state = localStorage.getItem('earningsPanel');
+        if (state) Object.assign(earningsPanel, JSON.parse(state));
+      } catch (e) {}
+    }
+    function saveEarningsPanel() {
+      try {
+        localStorage.setItem('earningsPanel', JSON.stringify(earningsPanel));
+      } catch (e) {}
+    }
+    function updateEarningsPanelUI() {
+      document.getElementById("todayEarnings").textContent = `LKR ${earningsPanel.todayEarnings.toFixed(2)}`;
+      document.getElementById("todayRides").textContent = `${earningsPanel.todayRides} Rides`;
+      document.getElementById("totalEarnings").textContent = `LKR ${earningsPanel.totalEarnings.toFixed(2)}`;
+      document.getElementById("totalRides").textContent = `${earningsPanel.totalRides} Rides`;
+      const avg = earningsPanel.totalRides > 0 ? earningsPanel.totalEarnings / earningsPanel.totalRides : 0;
+      document.getElementById("avgEarnings").textContent = `LKR ${avg.toFixed(2)}`;
+      updateEarningsPanelChart();
+      updateEarningsPanelTransactions();
+    }
+    function updateEarningsPanelChart() {
+      const ctx = document.getElementById('earningsChart').getContext('2d');
+      const last7 = earningsPanel.transactions.slice(0, 7).reverse();
+      const labels = last7.length > 0 ? last7.map((t, i) => `Ride ${i+1}`) : ['Ride 1', 'Ride 2', 'Ride 3', 'Ride 4', 'Ride 5', 'Ride 6', 'Ride 7'];
+      const data = last7.length > 0 ? last7.map(t => t.amount) : [0,0,0,0,0,0,0];
+      if (window.earningsChart) window.earningsChart.destroy();
+      window.earningsChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Earnings (LKR)',
+            data: data,
+            backgroundColor: '#4361ee',
+            borderColor: '#3a56d4',
+            borderWidth: 1,
+            borderRadius: 5
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: { 
+              beginAtZero: true, 
+              grid: { color: 'rgba(0, 0, 0, 0.05)' }, 
+              ticks: { callback: value => 'LKR ' + value } 
+            },
+            x: { grid: { display: false } }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: { 
+              backgroundColor: 'rgba(67, 97, 238, 0.9)',
+              padding: 12,
+              titleFont: { size: 14 },
+              bodyFont: { size: 14 },
+              callbacks: { 
+                label: context => `LKR ${context.parsed.y.toFixed(2)}`,
+                title: () => ''
+              } 
+            }
+          }
+        }
+      });
+    }
+    function updateEarningsPanelTransactions() {
+      const container = document.getElementById('transactionsList');
+      container.innerHTML = '';
+      if (earningsPanel.transactions.length === 0) {
+        container.innerHTML = '<div class="transaction-row"><div class="transaction-date">No transactions yet</div><div class="transaction-route"></div><div class="transaction-amount"></div></div>';
+        return;
+      }
+      earningsPanel.transactions.forEach((transaction, index) => {
+        const dateStr = new Date(transaction.timestamp).toLocaleString();
+        const row = document.createElement('div');
+        row.className = 'transaction-row';
+        if (index === 0) row.classList.add('highlight-transaction');
+        row.innerHTML = `<div class="transaction-date">${dateStr}</div><div class="transaction-route">${transaction.from} → ${transaction.to}</div><div class="transaction-amount">LKR ${transaction.amount.toFixed(2)}</div>`;
+        container.appendChild(row);
+      });
+    }
+    function addEarningPanelEntry(amount, from, to) {
+      const now = new Date();
+      const ymd = now.getFullYear() + '-' + (now.getMonth()+1).toString().padStart(2,'0') + '-' + now.getDate().toString().padStart(2,'0');
+      let lastDay = localStorage.getItem('earningsPanel_lastDay');
+      if (!lastDay) lastDay = ymd;
+      if (lastDay !== ymd) {
+        earningsPanel.todayEarnings = 0;
+        earningsPanel.todayRides = 0;
+        localStorage.setItem('earningsPanel_lastDay', ymd);
+      }
+      earningsPanel.totalEarnings += amount;
+      earningsPanel.totalRides += 1;
+      earningsPanel.todayEarnings += amount;
+      earningsPanel.todayRides += 1;
+      earningsPanel.transactions.unshift({
+        amount, from, to,
+        timestamp: now
+      });
+      if (earningsPanel.transactions.length > 10) earningsPanel.transactions.pop();
+      saveEarningsPanel();
+      updateEarningsPanelUI();
+    }
+
+    // Map and global state
+    let map = L.map("map").setView([6.8016, 79.9304], 13);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    // Map legend
+    const legend = L.control({ position: "bottomright" });
+    legend.onAdd = function (map) {
+      const div = L.DomUtil.create("div", "map-legend");
+      div.innerHTML = `
+        <div style="background: white; padding: 10px; border-radius: 5px; box-shadow: 0 1px 5px rgba(0,0,0,0.4);">
+          <h4 style="margin: 0 0 5px;">Legend</h4>
+          <div style="display: flex; align-items: center; margin-bottom: 3px;">
+            <div style="width: 20px; height: 20px; background: #28a745; border-radius: 50%; margin-right: 5px;"></div>
+            <span>Pickup</span>
+          </div>
+          <div style="display: flex; align-items: center; margin-bottom: 3px;">
+            <div style="width: 20px; height: 20px; background: #dc3545; border-radius: 50%; margin-right: 5px;"></div>
+            <span>Destination</span>
+          </div>
+          <div style="display: flex; align-items: center; margin-bottom: 3px;">
+            <div style="width: 20px; height: 20px; background: #ffc107; border-radius: 50%; margin-right: 5px;"></div>
+            <span>Driver</span>
+          </div>
+        </div>
+      `;
+      return div;
+    };
+    legend.addTo(map);
+
+    let pickupMarker = null;
+    let driverMarker = null;
+    let destinationMarker = null;
+    let routeLine = null;
+    let lastLatLng = null;
+    let currentPrice = 0;
+    let earningsChart = null;
+    let currentRouteInfo = null;
+
+    // DEMO data (simulateRequest) for demo mode.
+    const demoRoutes = [
+      { from: "Pettah", to: "Bambalapitiya", vehicle: "car", price: 500, fromCoords: [6.9344, 79.8500], toCoords: [6.8941, 79.8578] },
+      { from: "Kollupitiya", to: "Dehiwala", vehicle: "tuk", price: 750, fromCoords: [6.9271, 79.8612], toCoords: [6.8440, 79.8656] },
+      { from: "Nugegoda", to: "Kottawa", vehicle: "car", price: 900, fromCoords: [6.8728, 79.8893], toCoords: [6.8415, 79.9586] },
+      { from: "Colombo Fort", to: "Mount Lavinia", vehicle: "tuk", price: 850, fromCoords: [6.9356, 79.8487], toCoords: [6.8271, 79.8631] },
+      { from: "Rajagiriya", to: "Battaramulla", vehicle: "car", price: 600, fromCoords: [6.9098, 79.8986], toCoords: [6.8972, 79.9187] }
+    ];
+
+    // Listen for ride requests updates
+    latestDocRef.onSnapshot(async (doc) => {
+      const data = doc.data();
+      if (!data || !data.from || !data.to) return;
+      document.getElementById("info").innerText = `From: ${data.from} → To: ${data.to}`;
+      document.getElementById("info").classList.add("new-ride-pulse");
+      setTimeout(() => document.getElementById("info").classList.remove("new-ride-pulse"), 1500);
+
+      if (data.vehicle && data.price) {
+        document.getElementById("priceInfo").innerText = `Vehicle: ${data.vehicle.toUpperCase()} | Price: LKR ${data.price}`;
+        currentPrice = parseFloat(data.price);
+      } else {
+        document.getElementById("priceInfo").innerText = "";
+        currentPrice = 0;
+      }
+
+      const buttonsDiv = document.querySelector(".button-group");
+      const doneButtonDiv = document.getElementById("doneButton");
+      const completeRideButtonDiv = document.getElementById("completeRideButton");
+      if (data.status === "accepted") {
+        buttonsDiv.style.display = "none";
+        doneButtonDiv.style.display = "flex";
+        completeRideButtonDiv.style.display = "flex";
+        document.getElementById("requestMessage").innerText = "Proceed to Pickup!";
+        document.getElementById("requestMessage").style.backgroundColor = "rgba(6, 214, 160, 0.1)";
+        document.getElementById("requestMessage").style.color = "#059669";
+      } else if (data.status === "completed") {
+        buttonsDiv.style.display = "flex";
+        doneButtonDiv.style.display = "none";
+        completeRideButtonDiv.style.display = "none";
+        document.getElementById("requestMessage").innerText = "Ride Completed!";
+        document.getElementById("requestMessage").style.backgroundColor = "rgba(67, 97, 238, 0.1)";
+        document.getElementById("requestMessage").style.color = "#4361ee";
+        updateEarningsPanelUI();
+        setTimeout(() => {
+          document.getElementById("requestMessage").innerText = "";
+          simulateRequest();
+        }, 3000);
+      } else if (data.status === "rejected") {
+        buttonsDiv.style.display = "flex";
+        doneButtonDiv.style.display = "none";
+        completeRideButtonDiv.style.display = "none";
+        document.getElementById("requestMessage").innerText = "Request Rejected!";
+        document.getElementById("requestMessage").style.backgroundColor = "rgba(239, 71, 111, 0.1)";
+        document.getElementById("requestMessage").style.color = "#dc3545";
+        setTimeout(() => {
+          document.getElementById("requestMessage").innerText = "";
+          simulateRequest();
+        }, 3000);
+      } else {
+        buttonsDiv.style.display = "flex";
+        doneButtonDiv.style.display = "none";
+        completeRideButtonDiv.style.display = "none";
+        document.getElementById("requestMessage").innerText = "";
+      }
+
+      const spinner = document.getElementById("loadingSpinner");
+      spinner.style.display = "block";
+
+      try {
+        const route = demoRoutes.find(r => r.from === data.from && r.to === data.to);
+        let fromLat, fromLon, toLat, toLon;
+        if (route && route.fromCoords && route.toCoords) {
+          [fromLat, fromLon] = route.fromCoords;
+          [toLat, toLon] = route.toCoords;
+        } else {
+          const fromResponse = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(data.from)}&limit=5`);
+          const fromResults = await fromResponse.json();
+          if (fromResults.length === 0) {
+            document.getElementById("requestMessage").innerText = `Error: Pickup location "${data.from}" not found.`;
+            spinner.style.display = "none";
+            return;
+          }
+          fromLat = parseFloat(fromResults[0].lat);
+          fromLon = parseFloat(fromResults[0].lon);
+          const toResponse = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(data.to)}&limit=5`);
+          const toResults = await toResponse.json();
+          if (toResults.length === 0) {
+            document.getElementById("requestMessage").innerText = `Error: Drop-off location "${data.to}" not found.`;
+            spinner.style.display = "none";
+            return;
+          }
+          toLat = parseFloat(toResults[0].lat);
+          toLon = parseFloat(toResults[0].lon);
+        }
+        await drawRoute([fromLat, fromLon], [toLat, toLon], data.from, data.to, data.price || currentPrice);
+      } catch (error) {
+        document.getElementById("requestMessage").innerText = "Error geocoding locations.";
+      } finally {
+        spinner.style.display = "none";
+      }
+    });
+
+    // Simulate a ride request
+    function simulateRequest() {
+      const randomRoute = demoRoutes[Math.floor(Math.random() * demoRoutes.length)];
+      latestDocRef.set({
+        from: randomRoute.from,
+        to: randomRoute.to,
+        vehicle: randomRoute.vehicle,
+        price: randomRoute.price,
+        status: "requested"
+      });
+    }
+    // Accept the request
+    function acceptRequest() {
+      document.getElementById("requestMessage").innerText = "Accepting ride...";
+      document.getElementById("requestMessage").style.backgroundColor = "rgba(6, 214, 160, 0.1)";
+      document.getElementById("requestMessage").style.color = "#059669";
+      latestDocRef.update({ status: "accepted" }).then(() => {
+        setTimeout(simulateRequest, 3000);
+      });
+    }
+    // Reject the request
+    function rejectRequest() {
+      document.getElementById("requestMessage").innerText = "Rejecting ride...";
+      document.getElementById("requestMessage").style.backgroundColor = "rgba(239, 71, 111, 0.1)";
+      document.getElementById("requestMessage").style.color = "#dc3545";
+      latestDocRef.update({ status: "rejected" });
+    }
+    // Complete the ride (patch: also update penal)
+    function completeRide() {
+      document.getElementById("requestMessage").innerText = "Completing ride...";
+      document.getElementById("requestMessage").style.backgroundColor = "rgba(67, 97, 238, 0.1)";
+      document.getElementById("requestMessage").style.color = "#4361ee";
+      latestDocRef.get().then((doc) => {
+        if (doc.exists) {
+          const data = doc.data();
+          latestDocRef.update({ status: "completed" }).then(() => {
+            const from = data.from;
+            const to = data.to;
+            addEarningPanelEntry(currentPrice, from, to);
+            saveEarnings(currentPrice, from, to);
+            clearMap();
+            document.getElementById("completeRideButton").style.display = "none";
+          });
+        }
+      });
+    }
+
+    // Save earnings to Firestore (original)
+    async function saveEarnings(amount, from, to) {
+      try {
+        await earningsRef.add({
+          amount: amount,
+          from: from,
+          to: to,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        await driverRef.update({
+          totalEarnings: firebase.firestore.FieldValue.increment(amount),
+          totalRides: firebase.firestore.FieldValue.increment(1),
+          todayEarnings: firebase.firestore.FieldValue.increment(amount),
+          todayRides: firebase.firestore.FieldValue.increment(1)
+        });
+      } catch (error) { }
+    }
+
+    // Reset demo data, also clears penal
+    function resetDemoData() {
+      driverRef.set({
+        totalEarnings: 0,
+        totalRides: 0,
+        todayEarnings: 0,
+        todayRides: 0
+      }).then(() => {
+        earningsRef.get().then(snapshot => {
+          const batch = db.batch();
+          snapshot.docs.forEach(doc => {
+            batch.delete(doc.ref);
+          });
+          batch.commit().then(() => {
+            earningsPanel.totalEarnings = 0;
+            earningsPanel.totalRides = 0;
+            earningsPanel.todayEarnings = 0;
+            earningsPanel.todayRides = 0;
+            earningsPanel.transactions = [];
+            saveEarningsPanel();
+            updateEarningsPanelUI();
+            initDriverData();
+            document.getElementById("requestMessage").innerText = "Demo data has been reset!";
+            document.getElementById("requestMessage").style.backgroundColor = "rgba(255, 209, 102, 0.1)";
+            document.getElementById("requestMessage").style.color = "#856404";
+            setTimeout(() => {
+              document.getElementById("requestMessage").innerText = "";
+            }, 3000);
+          });
+        });
+      });
+    }
+
+    // Initialize driver data (original)
+    async function initDriverData() {
+      try {
+        const driverDoc = await driverRef.get();
+        if (driverDoc.exists) {
+          const data = driverDoc.data();
+          // Not changing penal here (handled by localStorage)
+        }
+        // Not loading transactions here, only Firestore for demo
+        updateEarningsPanelUI();
+      } catch (error) {}
+    }
+
+    // Map marker for driver
+    function createRotatedMarker(latlng, angle) {
+      const icon = L.divIcon({
+        className: "rotated-marker",
+        html: `<div style="transform: rotate(${angle}deg); width: 40px; height: 40px; background: #ffc107; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #333; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">🚕</div>`,
+        iconSize: [40, 40],
+        iconAnchor: [20, 20],
+      });
+      return L.marker(latlng, { icon }).addTo(map);
+    }
+    function getAngle(from, to) {
+      const dy = to.lat - from.lat;
+      const dx = to.lng - from.lng;
+      const theta = Math.atan2(dy, dx);
+      return (theta * 180) / Math.PI;
+    }
+    function clearMap() {
+      if (routeLine) { map.removeLayer(routeLine); routeLine = null; }
+      if (pickupMarker) { map.removeLayer(pickupMarker); pickupMarker = null; }
+      if (destinationMarker) { map.removeLayer(destinationMarker); destinationMarker = null; }
+      if (currentRouteInfo) { map.removeControl(currentRouteInfo); currentRouteInfo = null; }
+    }
+    // Draw route using OpenRouteService Directions API
+    async function drawRoute(fromCoords, toCoords, fromName, toName, price) {
+      try {
+        clearMap();
+        pickupMarker = L.marker([fromCoords[0], fromCoords[1]], {
+          icon: L.divIcon({
+            html: '<div style="background: #28a745; color: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white;">📍</div>',
+            iconSize: [32, 32],
+            iconAnchor: [16, 16]
+          })
+        }).addTo(map).bindPopup("Pickup Location").openPopup();
+        destinationMarker = L.marker([toCoords[0], toCoords[1]], {
+          icon: L.divIcon({
+            html: '<div style="background: #dc3545; color: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white;">🏁</div>',
+            iconSize: [32, 32],
+            iconAnchor: [16, 16]
+          })
+        }).addTo(map).bindPopup("Destination").openPopup();
+        currentRouteInfo = L.control({position: 'topleft'});
+        currentRouteInfo.onAdd = function(map) {
+          const div = L.DomUtil.create('div', 'route-info');
+          div.innerHTML = `
+            <div class="from">From: ${fromName}</div>
+            <div class="to">To: ${toName}</div>
+            <div class="price">Price: LKR ${price}</div>
+          `;
+          return div;
+        };
+        currentRouteInfo.addTo(map);
+        const url = `https://api.openrouteservice.org/v2/directions/driving-car/geojson`;
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Authorization': ORS_API_KEY,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            coordinates: [[fromCoords[1], fromCoords[0]], [toCoords[1], toCoords[0]]],
+            preference: 'recommended',
+            units: 'km'
+          })
+        });
+        const json = await response.json();
+        if (json && json.features && json.features.length > 0 && json.features[0].geometry.coordinates.length > 0) {
+          const coords = json.features[0].geometry.coordinates.map(c => [c[1], c[0]]);
+          routeLine = L.polyline(coords, {
+            color: "#4361ee",
+            weight: 6,
+            opacity: 0.8,
+          }).addTo(map);
+          const routeBounds = routeLine.getBounds();
+          const pickupBounds = L.latLngBounds([fromCoords[0], fromCoords[1]], [fromCoords[0], fromCoords[1]]);
+          const destBounds = L.latLngBounds([toCoords[0], toCoords[1]], [toCoords[0], toCoords[1]]);
+          const allBounds = routeBounds.extend(pickupBounds).extend(destBounds);
+          map.fitBounds(allBounds, { padding: [50, 50] });
+        } else {
+          const group = L.featureGroup([pickupMarker, destinationMarker]);
+          map.fitBounds(group.getBounds(), { padding: [50, 50] });
+          document.getElementById("requestMessage").innerText = "Route not available, showing direct path.";
+        }
+      } catch (error) {
+        const group = L.featureGroup([pickupMarker, destinationMarker]);
+        map.fitBounds(group.getBounds(), { padding: [50, 50] });
+        document.getElementById("requestMessage").innerText = "Error fetching route. Showing direct path.";
+      }
+    }
+
+    // Track driver location with rotation on map
+    if (navigator.geolocation) {
+      navigator.geolocation.watchPosition(
+        position => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          const currentLatLng = L.latLng(lat, lng);
+          let angle = 0;
+          if (lastLatLng) angle = getAngle(lastLatLng, currentLatLng);
+          lastLatLng = currentLatLng;
+          if (driverMarker) map.removeLayer(driverMarker);
+          driverMarker = createRotatedMarker(currentLatLng, angle);
+          map.setView(currentLatLng, 16);
+        },
+        err => {
+          const currentLatLng = L.latLng(6.8016, 79.9304);
+          driverMarker = createRotatedMarker(currentLatLng, 0);
+          map.setView(currentLatLng, 16);
+        },
+        { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
+      );
+    } else {
+      const currentLatLng = L.latLng(6.8016, 79.9304);
+      driverMarker = createRotatedMarker(currentLatLng, 0);
+      map.setView(currentLatLng, 16);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      loadEarningsPanel();
+      updateEarningsPanelUI();
+      initDriverData();
+      
+      // Initial demo request to show functionality
+      setTimeout(simulateRequest, 1000);
+    });
+
+  </script>
+</body>
+</html>

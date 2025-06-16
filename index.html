@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TukGo</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <style>
+    /* General Styles */
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f0f2f5;
+      color: #2d3134;
+    }
+
+    #map {
+      height: 50vh; /* Adjusted height for mobile */
+      width: 100%;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    /* Container Styles */
+    .container {
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 20px;
+    }
+
+    /* Header Styles */
+    h1 {
+      text-align: center;
+      color: #0078d4;
+      margin-bottom: 20px;
+    }
+
+    /* Box Styles */
+    .box {
+      padding: 16px;
+      margin: 12px 0;
+      background-color: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      transition: box-shadow 0.3s ease;
+    }
+
+    .box:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    }
+
+    /* Input and Select Styles */
+    input, select {
+      padding: 10px;
+      width: 100%;
+      margin-top: 8px;
+      border: 1px solid #ced4da;
+      border-radius: 8px;
+      font-size: 16px;
+      box-sizing: border-box;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: #80bdff;
+      box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+
+    /* Button Styles */
+    button {
+      padding: 10px 20px;
+      margin-top: 12px;
+      cursor: pointer;
+      background-color: #0078d4;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #005a9e;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    }
+
+    button:focus {
+      outline: none;
+      box-shadow: 0 0 0 0.2rem rgba(0, 120, 212, 0.5);
+    }
+
+    /* Status Box Styles */
+    #statusBox {
+      font-weight: bold;
+      color: #2e8b57;
+      text-align: center;
+      padding: 12px;
+      border-radius: 8px;
+      background-color: #e9ecef;
+      margin-top: 12px;
+    }
+
+    /* Vehicle Icon Styles */
+    .vehicle-icon {
+      margin-right: 8px;
+      font-size: 1.2em;
+    }
+
+    /* Price Box Styles */
+    #priceBox {
+      font-weight: bold;
+      margin: 12px;
+      text-align: center;
+      padding: 12px;
+      border-radius: 8px;
+      background-color: #f8f9fa;
+    }
+
+    /* Mobile-Specific Styles */
+    @media (max-width: 768px) {
+      .container {
+        padding: 10px; /* Reduce padding on small screens */
+      }
+
+      h1 {
+        font-size: 24px; /* Smaller header on mobile */
+      }
+
+      .box {
+        padding: 12px; /* Slightly reduced padding for boxes */
+        margin: 8px 0; /* Reduced margins for boxes */
+      }
+
+      input, select {
+        font-size: 14px; /* Smaller font size for inputs */
+        padding: 8px; /* Reduced padding for inputs */
+      }
+
+      button {
+        font-size: 14px; /* Smaller font size for buttons */
+        padding: 8px 16px; /* Reduced padding for buttons */
+      }
+
+      #map {
+        height: 40vh; /* Further reduce map height on smaller screens */
+      }
+    }
+
+    /* Very Small Screens */
+    @media (max-width: 480px) {
+      h1 {
+        font-size: 20px; /* Even smaller header */
+      }
+
+      #map {
+        height: 30vh; /* Even smaller map */
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>TukGo</h1>
+    <div class="box" id="searchBox">
+      <input type="text" id="destinationInput" placeholder="Enter destination and press Enter" />
+      <br />
+      <select id="vehicleType">
+        <option value="" disabled selected>Select vehicle type</option>
+        <option value="bike">🚲 Bike</option>
+        <option value="tuktuk">🛺 TukTuk</option>
+        <option value="car">🚗 Car</option>
+        <option value="truck">🚚 Truck</option>
+        <option value="van">🚐 Van</option>
+      </select>
+    </div>
+    <div class="box" id="infoBox"></div>
+    <div class="box" id="priceBox"></div>
+    <div class="box" id="sendBox" style="display:none">
+      <button onclick="sendRouteInfo()">Book Now</button>
+    </div>
+    <div id="statusBox">Waiting for input...</div>
+    <div id="map"></div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBH5NCUSQBwKHowSv641tOIljEQuF0r778",
+      authDomain: "tukgo2.firebaseapp.com",
+      projectId: "tukgo2",
+      storageBucket: "tukgo2.appspot.com",
+      messagingSenderId: "556513178306",
+      appId: "1:556513178306:web:49b3f8229c939f06c4415b",
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const ORS_API_KEY = "5b3ce3597851110001cf62481f5510d005e64284aa0a91face53ba8f";
+
+    const pricing = {
+      bike: { base: 50, perKm: 30 },
+      tuktuk: { base: 100, perKm: 60 },
+      car: { base: 150, perKm: 80 },
+      truck: { base: 300, perKm: 120 },
+      van: { base: 250, perKm: 100 },
+    };
+
+    // Added vehicle icons mapping
+    const vehicleIcons = {
+      bike: "🚲",
+      tuktuk: "🛺",
+      car: "🚗",
+      truck: "🚚",
+      van: "🚐"
+    };
+
+    const map = L.map("map").setView([0, 0], 1); // Initial world view
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+
+    let startCoords = null;
+    let startName = "Current Location";
+    let userMarker = null;
+    let userCircle = null;
+
+    navigator.geolocation.getCurrentPosition(position => {
+      startCoords = [position.coords.latitude, position.coords.longitude];
+      map.setView(startCoords, 13);
+
+      // Blue dot for user location
+      userMarker = L.marker(startCoords, {
+        icon: L.divIcon({
+          className: 'blue-dot',
+          iconSize: [8, 8],
+          iconAnchor: [4, 4],
+          html: '<div style="width: 8px; height: 8px; background-color: blue; border-radius: 50%;"></div>'
+        })
+      }).addTo(map).bindPopup("You are here").openPopup();
+
+      // 1km blue circle
+      userCircle = L.circle(startCoords, {
+        radius: 1000,
+        color: 'blue',
+        fillOpacity: 0.1
+      }).addTo(map);
+
+    }, error => {
+      // REMOVED FAKE LOCATION - Only use real GPS data
+      alert("Location access is required to use this app. Please enable location services and refresh the page.");
+      document.getElementById("statusBox").innerText = "Location access denied - Please enable location services";
+    });
+
+    let routeLayer = null;
+    let destMarker = null;
+    let currentRoute = null;
+    let currentDistanceKm = 0;
+
+    document.getElementById("destinationInput").addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        const query = e.target.value;
+        geocodeDestination(query);
+      }
+    });
+
+    document.getElementById("vehicleType").addEventListener("change", updatePriceDisplay);
+
+    function geocodeDestination(query) {
+      // Check if location is available
+      if (!startCoords) {
+        alert("Your location is not available. Please enable location services.");
+        return;
+      }
+      
+      fetch(`https://api.openrouteservice.org/geocode/search?api_key=${ORS_API_KEY}&text=${query}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (!data.features || data.features.length === 0) {
+            alert("Destination not found!");
+            return;
+          }
+          const coords = data.features[0].geometry.coordinates;
+          const latlng = [coords[1], coords[0]];
+          const name = data.features[0].properties.label;
+          getRouteTo(latlng, name);
+        });
+    }
+
+    function getRouteTo(destCoords, destName) {
+      if (!startCoords) {
+        alert("Location not available. Please enable location services.");
+        return;
+      }
+
+      if (routeLayer) map.removeLayer(routeLayer);
+      if (destMarker) map.removeLayer(destMarker);
+
+      destMarker = L.marker(destCoords).addTo(map).bindPopup(destName).openPopup();
+
+      const body = {
+        coordinates: [
+          [startCoords[1], startCoords[0]],
+          [destCoords[1], destCoords[0]],
+        ],
+        format: "geojson",
+      };
+
+      fetch("https://api.openrouteservice.org/v2/directions/driving-car/geojson", {
+        method: "POST",
+        headers: {
+          Authorization: ORS_API_KEY,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          const coords = data.features[0].geometry.coordinates;
+          const latlngs = coords.map((c) => [c[1], c[0]]);
+          routeLayer = L.polyline(latlngs, { color: "blue" }).addTo(map);
+          map.fitBounds(routeLayer.getBounds());
+
+          currentDistanceKm = data.features[0].properties.summary.distance / 1000;
+
+          document.getElementById("infoBox").innerText = `From: ${startName} To: ${destName}`;
+          document.getElementById("sendBox").style.display = "block";
+          document.getElementById("statusBox").innerText = "Ready to send request";
+
+          currentRoute = {
+            from: startName,
+            to: destName,
+            status: "waiting",
+            timestamp: new Date().toISOString(),
+            distanceKm: currentDistanceKm.toFixed(2),
+          };
+
+          updatePriceDisplay();
+        });
+    }
+
+    function updatePriceDisplay() {
+      const vehicle = document.getElementById("vehicleType").value;
+      const priceBox = document.getElementById("priceBox");
+
+      if (!vehicle || currentDistanceKm === 0) {
+        priceBox.innerText = "";
+        return;
+      }
+
+      const priceData = pricing[vehicle];
+      if (!priceData) {
+        priceBox.innerText = "Select a valid vehicle type";
+        return;
+      }
+
+      const price = priceData.base + priceData.perKm * currentDistanceKm;
+      
+      // Added vehicle icon in price display
+      const icon = vehicleIcons[vehicle];
+      priceBox.innerHTML = `Estimated Price: ${icon} LKR ${price.toFixed(0)}`;
+
+      if (currentRoute) {
+        currentRoute.vehicle = vehicle;
+        currentRoute.price = price.toFixed(0);
+      }
+    }
+
+    function sendRouteInfo() {
+      if (!currentRoute || !currentRoute.vehicle) {
+        alert("Please select a vehicle type and destination before sending.");
+        return;
+      }
+      db.collection("routes").doc("latest").set(currentRoute);
+      document.getElementById("statusBox").innerText = "Request sent. Waiting for driver response...";
+    }
+
+    db.collection("routes").doc("latest").onSnapshot((doc) => {
+      const data = doc.data();
+      if (!data) return;
+
+      if (data.status === "accepted") {
+        document.getElementById("statusBox").innerText = "Driver is coming soon...";
+      } else if (data.status === "rejected") {
+        document.getElementById("statusBox").innerText = "Searching for other drivers...";
+      }
+    });
+  </script>
+</body>
+</html>

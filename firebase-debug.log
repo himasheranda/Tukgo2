@@ -1,0 +1,48 @@
+[debug] [2025-06-06T07:33:50.003Z] ----------------------------------------------------------------------
+[debug] [2025-06-06T07:33:50.008Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\pc\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js serve
+[debug] [2025-06-06T07:33:50.008Z] CLI Version:   14.5.1
+[debug] [2025-06-06T07:33:50.008Z] Platform:      win32
+[debug] [2025-06-06T07:33:50.008Z] Node Version:  v24.1.0
+[debug] [2025-06-06T07:33:50.008Z] Time:          Fri Jun 06 2025 13:03:50 GMT+0530 (India Standard Time)
+[debug] [2025-06-06T07:33:50.009Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-06-06T07:33:50.441Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-06-06T07:33:50.442Z] > authorizing via signed-in user (himasheranda20@gmail.com)
+[debug] [2025-06-06T07:33:50.442Z] [iam] checking project tukgoweb for permissions ["firebase.projects.get"]
+[debug] [2025-06-06T07:33:50.443Z] Checked if tokens are valid: true, expires at: 1749198413256
+[debug] [2025-06-06T07:33:50.443Z] Checked if tokens are valid: true, expires at: 1749198413256
+[debug] [2025-06-06T07:33:50.445Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/tukgoweb:testIamPermissions [none]
+[debug] [2025-06-06T07:33:50.445Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/tukgoweb:testIamPermissions x-goog-quota-user=projects/tukgoweb
+[debug] [2025-06-06T07:33:50.445Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/tukgoweb:testIamPermissions {"permissions":["firebase.projects.get"]}
+[debug] [2025-06-06T07:33:52.107Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/tukgoweb:testIamPermissions 200
+[debug] [2025-06-06T07:33:52.107Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/tukgoweb:testIamPermissions {"permissions":["firebase.projects.get"]}
+[debug] [2025-06-06T07:33:52.110Z] Checked if tokens are valid: true, expires at: 1749198413256
+[debug] [2025-06-06T07:33:52.110Z] Checked if tokens are valid: true, expires at: 1749198413256
+[debug] [2025-06-06T07:33:52.111Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/tukgoweb/services/cloudresourcemanager.googleapis.com [none]
+[debug] [2025-06-06T07:33:52.111Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/tukgoweb/services/cloudresourcemanager.googleapis.com x-goog-quota-user=projects/tukgoweb
+[debug] [2025-06-06T07:33:54.112Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/tukgoweb/services/cloudresourcemanager.googleapis.com 200
+[debug] [2025-06-06T07:33:54.112Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/tukgoweb/services/cloudresourcemanager.googleapis.com [omitted]
+[debug] [2025-06-06T07:33:54.112Z] Checked if tokens are valid: true, expires at: 1749198413256
+[debug] [2025-06-06T07:33:54.113Z] Checked if tokens are valid: true, expires at: 1749198413256
+[debug] [2025-06-06T07:33:54.113Z] >>> [apiv2][query] GET https://cloudresourcemanager.googleapis.com/v1/projects/tukgoweb [none]
+[debug] [2025-06-06T07:33:54.536Z] <<< [apiv2][status] GET https://cloudresourcemanager.googleapis.com/v1/projects/tukgoweb 200
+[debug] [2025-06-06T07:33:54.537Z] <<< [apiv2][body] GET https://cloudresourcemanager.googleapis.com/v1/projects/tukgoweb {"projectNumber":"100840942079","projectId":"tukgoweb","lifecycleState":"ACTIVE","name":"tukgoweb","labels":{"firebase":"enabled","firebase-core":"disabled"},"createTime":"2025-06-04T16:19:35.654333Z"}
+[info] 
+[info] === Serving from 'C:\Users\pc\Desktop\tukgo2'...
+[info] 
+[debug] [2025-06-06T07:33:54.549Z] Checked if tokens are valid: true, expires at: 1749198413256
+[debug] [2025-06-06T07:33:54.550Z] Checked if tokens are valid: true, expires at: 1749198413256
+[debug] [2025-06-06T07:33:54.567Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/tukgoweb/sites 
+[debug] [2025-06-06T07:33:55.930Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/tukgoweb/sites 200
+[debug] [2025-06-06T07:33:55.930Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/tukgoweb/sites {"sites":[{"name":"projects/tukgoweb/sites/tukgoweb","defaultUrl":"https://tukgoweb.web.app","type":"DEFAULT_SITE"}]}
+[debug] [2025-06-06T07:33:55.931Z] Checked if tokens are valid: true, expires at: 1749198413256
+[debug] [2025-06-06T07:33:55.931Z] Checked if tokens are valid: true, expires at: 1749198413256
+[debug] [2025-06-06T07:33:55.932Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/tukgoweb/webApps/-/config [none]
+[debug] [2025-06-06T07:33:56.580Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/tukgoweb/webApps/-/config 200
+[debug] [2025-06-06T07:33:56.580Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/tukgoweb/webApps/-/config {"projectId":"tukgoweb","appId":"1:100840942079:web:29298d4b257b3902909fca","storageBucket":"tukgoweb.firebasestorage.app","apiKey":"AIzaSyDVYgTZuGXK8BqiN1xA6rux9YhSzeM0WLE","authDomain":"tukgoweb.firebaseapp.com","messagingSenderId":"100840942079"}
+[debug] [2025-06-06T07:33:56.699Z] Checked if tokens are valid: true, expires at: 1749198413256
+[debug] [2025-06-06T07:33:56.700Z] Checked if tokens are valid: true, expires at: 1749198413256
+[debug] [2025-06-06T07:33:56.703Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/tukgoweb [none]
+[debug] [2025-06-06T07:33:57.123Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/tukgoweb 200
+[debug] [2025-06-06T07:33:57.124Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/tukgoweb {"projectId":"tukgoweb","projectNumber":"100840942079","displayName":"tukgoweb","name":"projects/tukgoweb","resources":{"hostingSite":"tukgoweb"},"state":"ACTIVE","etag":"1_68ec9e7f-c137-4096-abd6-3c3b8ff089fa"}
+[info] +  hosting[tukgoweb]: Local server: http://localhost:5000 {"metadata":{"emulator":{"name":"hosting"},"message":"Local server: \u001b[4m\u001b[1mhttp://localhost:5000\u001b[22m\u001b[24m"}}
