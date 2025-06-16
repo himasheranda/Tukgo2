@@ -9,7 +9,25 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   <style>
-    /* (Same styles as before) */
+    /* Added language toggle styles */
+    #languageToggle {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      padding: 6px 12px;
+      background-color: #0078d4;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      z-index: 1000;
+      transition: background-color 0.3s ease;
+    }
+    #languageToggle:hover {
+      background-color: #005a9e;
+    }
+    
     body, html {
       margin: 0;
       padding: 0;
@@ -29,6 +47,7 @@
       max-width: 800px;
       margin: 20px auto;
       padding: 20px;
+      position: relative; /* For positioning language toggle */
     }
     h1 {
       text-align: center;
@@ -107,6 +126,12 @@
       input, select { font-size: 14px; padding: 8px; }
       button { font-size: 14px; padding: 8px 16px; }
       #map { height: 40vh; }
+      #languageToggle {
+        top: 10px;
+        right: 10px;
+        padding: 4px 8px;
+        font-size: 12px;
+      }
     }
     @media (max-width: 480px) {
       h1 { font-size: 20px; }
@@ -116,6 +141,7 @@
 </head>
 <body>
   <div class="container">
+    <button id="languageToggle">English → Sinhala</button>
     <h1>TukGo</h1>
     <div class="box" id="searchBox">
       <form id="destinationForm">
@@ -134,13 +160,85 @@
     <div class="box" id="infoBox"></div>
     <div class="box" id="priceBox"></div>
     <div class="box" id="sendBox" style="display:none">
-      <button onclick="sendRouteInfo()">Book Now</button>
+      <button id="bookButton">Book Now</button>
     </div>
     <div id="statusBox">Waiting for input...</div>
     <div id="map"></div>
   </div>
 
   <script>
+    // Language management
+    let currentLanguage = 'en';
+    const translations = {
+      en: {
+        placeholder: "Enter destination and press Enter",
+        vehicleSelect: "Select vehicle type",
+        vehicleTypes: {
+          bike: "Bike",
+          tuktuk: "TukTuk",
+          car: "Car",
+          truck: "Truck",
+          van: "Van"
+        },
+        bookButton: "Book Now",
+        status: {
+          waiting_input: "Waiting for input...",
+          location_denied: "Location access denied.",
+          ready: "Ready to send request",
+          request_sent: "Request sent. Waiting for driver response...",
+          driver_coming: "Driver is coming soon...",
+          searching: "Searching for other drivers...",
+          select_vehicle: "Please select a vehicle type and destination before sending."
+        }
+      },
+      si: {
+        placeholder: "ගමනාන්තය ඇතුළත් කර Enter ඔබන්න",
+        vehicleSelect: "වාහන වර්ගය තෝරන්න",
+        vehicleTypes: {
+          bike: "බයිසිකලය",
+          tuktuk: "තුක්තුක්",
+          car: "මෝටර් රථය",
+          truck: "ලොරිය",
+          van: "වැන්"
+        },
+        bookButton: "දැන්ම වෙන්කරගන්න",
+        status: {
+          waiting_input: "ආදානය බලාපොරොත්තු වෙමින්...",
+          location_denied: "ස්ථාන ප්‍රවේශය ප්‍රතික්ෂේප කර ඇත.",
+          ready: "ඉල්ලීම යැවීමට සූදානම්",
+          request_sent: "ඉල්ලීම යවා ඇත. රියැදුරුගේ ප්‍රතිචාරය බලාපොරොත්තු වෙමින්...",
+          driver_coming: "රියැදුරු ඉක්මනින් පැමිණෙනු ඇත...",
+          searching: "වෙනත් රියදුරන් සොයමින්...",
+          select_vehicle: "යැවීමට පෙර වාහන වර්ගයක් සහ ගමනාන්තය තෝරන්න."
+        }
+      }
+    };
+
+    function updateUIForLanguage(lang) {
+      // Update input placeholder
+      document.getElementById("destinationInput").placeholder = translations[lang].placeholder;
+      
+      // Update vehicle dropdown
+      const vehicleSelect = document.getElementById("vehicleType");
+      vehicleSelect.options[0].text = translations[lang].vehicleSelect;
+      
+      // Update vehicle options
+      for (let i = 1; i < vehicleSelect.options.length; i++) {
+        const option = vehicleSelect.options[i];
+        const value = option.value;
+        option.text = `${vehicleIcons[value]} ${translations[lang].vehicleTypes[value]}`;
+      }
+      
+      // Update book button text
+      document.getElementById("bookButton").textContent = translations[lang].bookButton;
+      
+      // Update status message if needed
+      if (currentStatusKey) {
+        document.getElementById("statusBox").textContent = translations[lang].status[currentStatusKey];
+      }
+    }
+
+    // Firebase and app configuration
     const firebaseConfig = {
       apiKey: "AIzaSyBH5NCUSQBwKHowSv641tOIljEQuF0r778",
       authDomain: "tukgo2.firebaseapp.com",
@@ -175,6 +273,12 @@
     let startName = "Current Location";
     let userMarker = null;
     let userCircle = null;
+    let currentStatusKey = 'waiting_input';
+
+    function setStatus(key) {
+      currentStatusKey = key;
+      document.getElementById('statusBox').textContent = translations[currentLanguage].status[key];
+    }
 
     navigator.geolocation.getCurrentPosition(position => {
       startCoords = [position.coords.latitude, position.coords.longitude];
@@ -194,7 +298,7 @@
       }).addTo(map);
     }, error => {
       alert("Location access is required. Please enable location services.");
-      document.getElementById("statusBox").innerText = "Location access denied.";
+      setStatus('location_denied');
     });
 
     let routeLayer = null;
@@ -210,11 +314,24 @@
 
     document.getElementById("vehicleType").addEventListener("change", updatePriceDisplay);
 
+    // Language toggle event
+    document.getElementById("languageToggle").addEventListener("click", () => {
+      if (currentLanguage === 'en') {
+        currentLanguage = 'si';
+        document.getElementById("languageToggle").textContent = "සිංහල → English";
+      } else {
+        currentLanguage = 'en';
+        document.getElementById("languageToggle").textContent = "English → Sinhala";
+      }
+      updateUIForLanguage(currentLanguage);
+    });
+
     function geocodeDestination(query) {
       if (!startCoords) {
         alert("Your location is not available.");
         return;
       }
+      setStatus('waiting_input');
       fetch(`https://api.openrouteservice.org/geocode/search?api_key=${ORS_API_KEY}&text=${query}`)
         .then(res => res.json())
         .then(data => {
@@ -263,9 +380,10 @@
 
         currentDistanceKm = data.features[0].properties.summary.distance / 1000;
 
-        document.getElementById("infoBox").innerText = `From: ${startName} To: ${destName}`;
+        document.getElementById("infoBox").textContent = 
+          `From: ${startName} To: ${destName}`;
         document.getElementById("sendBox").style.display = "block";
-        document.getElementById("statusBox").innerText = "Ready to send request";
+        setStatus('ready');
 
         currentRoute = {
           from: startName,
@@ -284,13 +402,13 @@
       const priceBox = document.getElementById("priceBox");
 
       if (!vehicle || currentDistanceKm === 0) {
-        priceBox.innerText = "";
+        priceBox.textContent = "";
         return;
       }
 
       const priceData = pricing[vehicle];
       if (!priceData) {
-        priceBox.innerText = "Select a valid vehicle type";
+        priceBox.textContent = "Select a valid vehicle type";
         return;
       }
 
@@ -306,29 +424,28 @@
 
     function sendRouteInfo() {
       if (!currentRoute || !currentRoute.vehicle) {
-        alert("Please select a vehicle type and destination before sending.");
+        alert(translations[currentLanguage].status.select_vehicle);
         return;
       }
       db.collection("routes").doc("latest").set(currentRoute);
-      document.getElementById("statusBox").innerText = "Request sent. Waiting for driver response...";
+      setStatus('request_sent');
     }
+
+    document.getElementById("bookButton").addEventListener("click", sendRouteInfo);
 
     db.collection("routes").doc("latest").onSnapshot(doc => {
       const data = doc.data();
       if (!data) return;
 
       if (data.status === "accepted") {
-        document.getElementById("statusBox").innerText = "Driver is coming soon...";
+        setStatus('driver_coming');
       } else if (data.status === "rejected") {
-        document.getElementById("statusBox").innerText = "Searching for other drivers...";
+        setStatus('searching');
       }
     });
-  </script>
-</body>
-</html>
 
-      }
-    });
+    // Initialize UI with default language
+    updateUIForLanguage(currentLanguage);
   </script>
 </body>
 </html>
